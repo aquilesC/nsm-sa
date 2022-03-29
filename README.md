@@ -1,7 +1,23 @@
 # NSM-SA
 
-Standard Analysis code for analyzing 1D-biomolecule trajectories, as described in "Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
+Code for analyzing 1D-biomolecule trajectories, as described in "Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
 
+The code performs 3 main tasks:
+1. Image pre processing including image stabilization and background subtraction
+2. Identification of particle like objects
+3. Creating particle trajectories by linking potential particles from step 2.
+
+
+## Installation
+Install matlab and downlload the repository form git. The code can be run directly form the supplied scripts. 
+
+
+## instructions
+Change the required fields in the main file to specify information about the sample and the files to be analyzed. 
+Different levels of analysis can be selected by modifying the following parameters:
+
+- xxx - Select if particle tracking should be performed 
+- yyy - Select limit for detected particle in terms of x times the standard deviation of the background signal
 ## Getting started
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
