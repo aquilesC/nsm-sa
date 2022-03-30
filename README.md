@@ -5,7 +5,7 @@ Code utilizing the standard analysis (SA) for Nanofluidic Scattering Microscopy 
 The code performs 3 main tasks:
 1. Image processing including image stabilization and background subtraction - generation of a kymograph from raw data  
 2. Particle tracking - finding particle trajectories within the kymograph
-3. Characterization of the trajectories in terms of particles' integrated optical contrast (iOC), diffusivity (D), molecular mass (MW), and hydrodynamic radius (R_S). 
+3. Characterization of the trajectories in terms of particles' integrated optical contrast (iOC), diffusivity (D), molecular mass (MW), and hydrodynamic radius (HR). 
 
 ## Installation
 Install Matlab and download the repository from git. The code can be run directly from the supplied scripts. 
@@ -23,8 +23,8 @@ tbc...
 
 Indetifier:
 
-- M - raw data\
-- C - processed image data\
+- M - raw data
+- C - processed image data
 - D - particle trajectories data
 
 2. Process the raw data
@@ -40,7 +40,7 @@ Indetifier:
 - Load the ExperimentTimeStamp_C.m and ExperimentTimeStamp_D.m 
 - Run plots/plotKymograph.m
 
-4. Plot the scatter plot and histograms of iOC/MW and D/R_S corresponding to the found particles
+4. Plot the scatter plot and histograms of iOC/MW and D/HR corresponding to the found particles
 - Load ExperimentTimeStamp_D.m 
 - Run plots/plotParticles.m
 
