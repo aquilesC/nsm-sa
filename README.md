@@ -19,6 +19,7 @@ Sample data are provided in data folder. The names of the files are comprised of
 ExperimentTimeStamp:
 
 - Ferritin in Channel I: 13-10-20_14-01-50
+
 tbc...
 
 Indetifier:
@@ -27,7 +28,7 @@ Indetifier:
 - C - processed image data
 - D - particle trajectories data
 
-2. Process the raw data
+2. Processing the raw data
 
 - Change the required field (ExperimentTimeStamp) in the saveKymograph.m to specify the name of the file to be analyzed. 
 - A serie of settings is described in the heading of saveKymograph.m. We recommend to use the default values (optimized for the collected data).
@@ -35,18 +36,12 @@ Indetifier:
 - Results of the image processing is saved as ExperimentTimeStamp_C.m
 - Results of the particle tracking is saved as ExperimentTimeStamp_D.m
 
-3. Plot the kymograph
+3. Plotting the kymograph
 
 - Load the ExperimentTimeStamp_C.m and ExperimentTimeStamp_D.m 
 - Run plots/plotKymograph.m
 
-4. Plot the scatter plot and histograms of iOC/MW and D/HR corresponding to the found particles
+4. Plotting the scatter plot and histograms of iOC/MW and D/HR corresponding to the found particles
 - Load ExperimentTimeStamp_D.m 
 - Run plots/plotParticles.m
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
 
