@@ -1,23 +1,45 @@
 # NSM-SA
 
-Code for analyzing 1D-biomolecule trajectories, as described in "Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
+Code utilizing the standard analysis (SA) for Nanofluidic Scattering Microscopy (NSM), described in "B. Špačková et al.: Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
 
 The code performs 3 main tasks:
-1. Image pre processing including image stabilization and background subtraction
-2. Identification of particle like objects
-3. Creating particle trajectories by linking potential particles from step 2.
-
+1. Image processing including image stabilization and background subtraction - generation of a kymograph from raw data  
+2. Particle tracking - finding particle trajectories within the kymograph
+3. Characterization of the trajectories in terms of particles' integrated optical contrast (iOC), diffusivity (D), molecular mass (MW), and hydrodynamic radius (R_S). 
 
 ## Installation
-Install matlab and downlload the repository form git. The code can be run directly form the supplied scripts. 
+Install Matlab and download the repository from git. The code can be run directly from the supplied scripts. 
+
+## Instructions for Demo 
+
+1. Sample data
+A sample data are provided in data folder. The names of the files are comprised of ExperimentTimeStamp + Idenfier.
+
+ExperimentTimeStamp:
+Ferritin in Channel I: 13-10-20_14-01-50
+tbc...
+
+Indetifier:
+M - raw data
+C - processed image data
+D - particle trajectories data
+
+2. Process the raw data
+- Select a file to be analyzed (the list of provided data can be foudn )
+- Change the required field (ExperimentTimeStamp) in the saveKymograph.m to specify the name of the file to be analyzed. 
+A serie of settings is described in the heading of saveKymograph.m. We recommend to use the default values (optimized for the collected data).
+Run saveKymograph.m
+Results of the image processing is saved as ExperimentTimeStamp_C.m
+Results of the particle tracking is saved as ExperimentTimeStamp_D.m
 
 
-## instructions
-Change the required fields in the main file to specify information about the sample and the files to be analyzed. 
-Different levels of analysis can be selected by modifying the following parameters:
+To plot the kymograph
+Load the ExperimentTimeStamp_C.m and ExperimentTimeStamp_C.m 
+Run plots/plotKymograph.m
 
-- xxx - Select if particle tracking should be performed 
-- yyy - Select limit for detected particle in terms of x times the standard deviation of the background signal
+To plot the characteristics of Change the required field (ExperimentTimeStamp) in the plotResults.m to specify the name of the file to be plotted. 
+Run plotResults.m.
+
 ## Getting started
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
