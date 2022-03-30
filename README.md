@@ -18,14 +18,14 @@ Sample data are provided in data folder. The names of the files are comprised of
 
 ExperimentTimeStamp:
 
-Ferritin in Channel I: 13-10-20_14-01-50
+- Ferritin in Channel I: 13-10-20_14-01-50
 tbc...
 
 Indetifier:
 
-M - raw data//
-C - processed image data//
-D - particle trajectories data
+- M - raw data\
+- C - processed image data\
+- D - particle trajectories data
 
 2. Process the raw data
 
@@ -43,9 +43,6 @@ D - particle trajectories data
 4. Plot the scatter plot and histograms of iOC/MW and D/R_S corresponding to the found particles
 - Load ExperimentTimeStamp_D.m 
 - Run plots/plotParticles.m
-
-To plot the characteristics of Change the required field (ExperimentTimeStamp) in the plotResults.m to specify the name of the file to be plotted. 
-Run plotResults.m.
 
 ## Authors and acknowledgment
 Show your appreciation to those who have contributed to the project.
