@@ -44,3 +44,9 @@ This data corresponds to the artificial dataset used for Fig. S14.
 - Load _ExperimentTimeStamp__D.m 
 - Run _plots/plotParticles.m_
 
+**Requirements**
+MATLAB 9.11
+Deep Learning Toolbox 14.3
+Image Processing Toolbox 11.4
+Curve Fitting Toolbox 3.6
+
