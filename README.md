@@ -29,18 +29,18 @@ This data corresponds to the artificial dataset used for Fig. S14.
 
 ## 2. Processing the raw data
 
-    - Change the required field (ExperimentTimeStamp) in the saveKymograph.m to specify the name of the file to be analyzed. 
-    - A serie of settings is described in the heading of saveKymograph.m. We recommend to use the default values        (optimized for the collected data).
-    - Run _saveKymograph.m_
-    - Results of the image processing is saved as _ExperimentTimeStamp_C.m_
-    - Results of the particle tracking is saved as _ExperimentTimeStamp_D.m_
+- Change the required field (ExperimentTimeStamp) in the saveKymograph.m to specify the name of the file to be analyzed. 
+- A serie of settings is described in the heading of saveKymograph.m. We recommend to use the default values        (optimized for the collected data).
+- Run _saveKymograph.m_
+- Results of the image processing is saved as _ExperimentTimeStamp_C.m_
+- Results of the particle tracking is saved as _ExperimentTimeStamp_D.m_
 
 ## 3. Plotting the kymograph
 
-    - Load the _ExperimentTimeStamp_C.m_ and _ExperimentTimeStamp_D.m_ 
-    - Run _plots/plotKymograph.m_
+- Load the _ExperimentTimeStamp_C.m_ and _ExperimentTimeStamp_D.m_ 
+- Run _plots/plotKymograph.m_
 
 ## 4. Plotting the scatter plot and histograms of iOC/MW and D/HR corresponding to the found particles
-    - Load _ExperimentTimeStamp__D.m 
-    - Run _plots/plotParticles.m_
+- Load _ExperimentTimeStamp__D.m 
+- Run _plots/plotParticles.m_
 
