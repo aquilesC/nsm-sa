@@ -17,8 +17,8 @@ tav_drift=denoise_setting.tav_drift;
 
 %% image stabilization
 disp('image stabilization')
-for i=1:size(I,1)-1 
-%parfor i=1:size(I,1)-1 
+%for i=1:size(I,1)-1 
+parfor i=1:size(I,1)-1 
         [Yc(i,:),x3(i),kk(i)]=image_stabilization (I(i,:),I(i+1,:),Yav_drift); %Y position stabilized intesity ratio between i+1 and i frame
 end
 

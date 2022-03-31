@@ -1,22 +1,37 @@
-function [MI_decided, MI_trajectory] = findTrajectory (OC_anal,data, DIFF_COEFF,FACTOR_PARTICLE_LIMIT)
+function [MI_decided, MI_trajectory] = findTrajectory (OC, DIFF_COEFF, FACTOR_PARTICLE_LIMIT)
 
-fun_plot=0;
+%particle tracking algorithm, described in "B. Špačková et al.: Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
 
+% OC.timeFrame - number of time frames correspondng to found minimas [frame #]
+% OC.position - corresponding minima positions [pixel]
+% OC.m0 - correspondng 0-th intensity moment [pixel]
+
+% FACTOR_PARTICLE_LIMIT
+
+% MI_decided - indexes of minima that were attributed to particles
+% MI_trajectory - groups of indexes of minima that were attributed to a trajectory {index of trajectory}(index of minima)
+
+
+%% D_limits
 DISTANCE_LIMIT=sqrt(2*DIFF_COEFF) * 3;
+number_of_frames = 8;
+VAR_Dx8_threshold =  DIFF_COEFF*(1+0.72*FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames-1)).^2;
+number_of_frames=15;
+VAR_Dx15_threshold =  DIFF_COEFF*(1+0.72*FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames-1)).^2;
 
                 
-%% minima index
-MI_0=1:length(OC_anal.timeFrame);
+%% indexes of minima
+MI_0=1:length(OC.timeFrame);
 MI=[];
-MI{1}=MI_0(OC_anal.timeFrame==1);
-for it=2:max(OC_anal.timeFrame)
-     MI{it}=MI_0(OC_anal.timeFrame==it);
+MI{1}=MI_0(OC.timeFrame==1);
+for it=2:max(OC.timeFrame)
+     MI{it}=MI_0(OC.timeFrame==it);
 end
                      
 
-           T=841;
-           %parfor iT=1:ceil((length(MI)-8)/T)
-           for iT=1:ceil((length(MI)-8)/T)
+T=841; %for parallel computing: number of frames analyzed by a single core
+%parfor iT=1:ceil((length(MI)-8)/T)
+for iT=1:ceil((length(MI)-8)/T) %iT is the number of core
                
                MI_variation=[];
                SUM_Dx2 = [];
@@ -27,45 +42,49 @@ end
                ID=[];
                cost=[];
                
+                %% 8-frame-trajectories
                 number_of_frames = 8;
-                VAR_Dx8_threshold =  DIFF_COEFF*(1+0.72*FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames-1)).^2;
-               
-                %variation of 8
                 for it=1:7:min([T,length(MI)-((iT-1)*T+7)]) %it=(iT-1)*T+7:min([iT*T+6,length(MI)-1])
                     it0=(it-1)/7+1;
                 
+                    % MI allowed for 2-frame-trajectories 
                     MI_variation12=combvec(MI{(iT-1)*T+it},MI{(iT-1)*T+it+1});
-                    MI_variation12=MI_variation12(:,abs(diff(OC_anal.position(MI_variation12),1,1))<DISTANCE_LIMIT);
+                    MI_variation12=MI_variation12(:,abs(diff(OC.position(MI_variation12),1,1))<DISTANCE_LIMIT);
                     MI_variation34=combvec(MI{(iT-1)*T+it+2},MI{(iT-1)*T+it+3});
-                    MI_variation34=MI_variation34(:,abs(diff(OC_anal.position(MI_variation34),1,1))<DISTANCE_LIMIT);
+                    MI_variation34=MI_variation34(:,abs(diff(OC.position(MI_variation34),1,1))<DISTANCE_LIMIT);
                     MI_variation56=combvec(MI{(iT-1)*T+it+4},MI{(iT-1)*T+it+5});
-                    MI_variation56=MI_variation56(:,abs(diff(OC_anal.position(MI_variation56),1,1))<DISTANCE_LIMIT);
+                    MI_variation56=MI_variation56(:,abs(diff(OC.position(MI_variation56),1,1))<DISTANCE_LIMIT);
                     MI_variation78=combvec(MI{(iT-1)*T+it+6},MI{(iT-1)*T+it+7});
-                    MI_variation78=MI_variation78(:,abs(diff(OC_anal.position(MI_variation78),1,1))<DISTANCE_LIMIT);
+                    MI_variation78=MI_variation78(:,abs(diff(OC.position(MI_variation78),1,1))<DISTANCE_LIMIT);
 
+                    % MI allowed for 4-frame-trajectories 
                     MI_variation14=combvec(MI_variation12,MI_variation34);
-                    MI_variation14 = MI_variation14(:,abs(diff(OC_anal.position(MI_variation14(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
+                    MI_variation14 = MI_variation14(:,abs(diff(OC.position(MI_variation14(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
                     MI_variation58=combvec(MI_variation56,MI_variation78);
-                    MI_variation58 = MI_variation58(:,abs(diff(OC_anal.position(MI_variation58(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
+                    MI_variation58 = MI_variation58(:,abs(diff(OC.position(MI_variation58(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
 
+                    % MI allowed for 8-frame-trajectories 
                     MI_variation0=combvec(MI_variation14,MI_variation58);
-                    MI_variation0 = MI_variation0(:,abs(diff(OC_anal.position(MI_variation0(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
+                    MI_variation0 = MI_variation0(:,abs(diff(OC.position(MI_variation0(end-2:end-1,:)),1,1))<DISTANCE_LIMIT);
                     
-                    Dx = diff(OC_anal.position(MI_variation0),1,1);
+                    % diffusivity (VAR_Dx) for 8-frame-trajectories 
+                    Dx = diff(OC.position(MI_variation0),1,1);
                     SUM_Dx20 = sum(Dx.^2,1);
                     VAR_Dx = SUM_Dx20/(number_of_frames-1);
                     
+                    % filter 8-frame-trajectories with too high diffusivities 
                     ff = VAR_Dx < VAR_Dx8_threshold;
                     if sum(ff)>0
                         MI_variation0 = MI_variation0(:,ff);
                         SUM_Dx20 = SUM_Dx20(ff);
                         
-                        m = OC_anal.m0(MI_variation0);
+                        m = OC.m0(MI_variation0);
                         SUM_m0 = sum(m,1);
                         SUM_m20 = sum(m.^2,1);
                         MEAN_m = SUM_m0/8;
-                        MEAN_m8_threshold = mean(OC_anal.MEAN_m8_threshold(MI_variation0),1);
+                        MEAN_m8_threshold = mean(OC.MEAN_m8_threshold(MI_variation0),1);
                         
+                        % filter 8-frame-trajectories with too low mean of zero order intesity moments
                         ff = MEAN_m < MEAN_m8_threshold;
                         if sum(ff)>0
                             MI_variation0 = MI_variation0(:,ff);
@@ -74,30 +93,32 @@ end
                             SUM_m20 = SUM_m20(ff);
                         
                             VAR_m = (SUM_m20 - SUM_m0.^2/number_of_frames)/number_of_frames;
-                            VAR_m8_threshold = mean(OC_anal.VAR_m8_threshold(MI_variation0),1);
+                            VAR_m8_threshold = mean(OC.VAR_m8_threshold(MI_variation0),1);
 
+                            % filter 8-frame-trajectories with too high STD of zero order intesity moments
                             ff = VAR_m < VAR_m8_threshold;
                             if sum(ff)>0
 
+                                % properties of filtered 8-frame-trajectories
                                 MI_variation{it0} = MI_variation0(:,ff);
                                 SUM_Dx2{it0} = SUM_Dx20(ff);
                                 SUM_m{it0} = SUM_m0(ff);
                                 SUM_m2{it0} = SUM_m20(ff);
-                                SUM_m_withoutend{it0} = SUM_m{it0} - OC_anal.m0(MI_variation{it0}(end,:))';
-                                SUM_m2_withoutend{it0} = SUM_m2{it0} - (OC_anal.m0(MI_variation{it0}(end,:))').^2;
+                                SUM_m_withoutend{it0} = SUM_m{it0} - OC.m0(MI_variation{it0}(end,:))';
+                                SUM_m2_withoutend{it0} = SUM_m2{it0} - (OC.m0(MI_variation{it0}(end,:))').^2;
                             end
                         end
                     end
                 end
                 
-                %variation of 15
+                %% 15-frame-trajectories
                 len=1;
-                number_of_frames=15;
-                VAR_Dx15_threshold =  DIFF_COEFF*(1+0.72*FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames-1)).^2;
-                
+                number_of_frames = 15;
                 for it=1:length(MI_variation)-1
                     
                     if size(MI_variation{it},2)>0 & size(MI_variation{it+1},2)>0
+
+                        % MI of 15-frame-trajectories created out of two 8-frame-trajectories
                         ID0=combvec(1:size(MI_variation{it},2),1:size(MI_variation{it+1},2));
                         MI_variation0=combvec(MI_variation{it},MI_variation{it+1});
                         ff=MI_variation0(8,:)==MI_variation0(9,:);
@@ -105,53 +126,55 @@ end
                         MI_variation0(8,:)=[];
                         ID0=ID0(:,ff);
                         
+                        % properties of 15-frame-trajectories
                         VAR_Dx = (SUM_Dx2{it}(ID0(1,:)) + SUM_Dx2{it+1}(ID0(2,:)))/(number_of_frames-1);
                         MEAN_m = (SUM_m_withoutend{it}(ID0(1,:)) + SUM_m{it+1}(ID0(2,:)))/number_of_frames;
                         VAR_m = (SUM_m2_withoutend{it}(ID0(1,:)) + SUM_m2{it+1}(ID0(2,:)) - ...
                             (SUM_m_withoutend{it}(ID0(1,:)) + SUM_m{it+1}(ID0(2,:))).^2/number_of_frames)/number_of_frames;
-                        MEAN_m15_threshold = mean(OC_anal.MEAN_m15_threshold(MI_variation0),1);
-                        VAR_m15_threshold = mean(OC_anal.VAR_m15_threshold(MI_variation0),1);
+                        MEAN_m15_threshold = mean(OC.MEAN_m15_threshold(MI_variation0),1);
+                        VAR_m15_threshold = mean(OC.VAR_m15_threshold(MI_variation0),1);
                         
+                        % filter 15-frame-trajectories that have too low mean or too high diffusivity 
                         ff = MEAN_m < MEAN_m15_threshold  & VAR_Dx < VAR_Dx15_threshold;% & VAR_m < VAR_m15_threshold
 
-                          ID{len}{it} = [];
+                         ID{len}{it} = [];
                          cost{len}{it} = [];
-                         cost0=VAR_Dx(ff).*VAR_m(ff);
+                         cost0=VAR_Dx(ff).*VAR_m(ff); %cost function
                          MI_variation0=MI_variation0(:,ff);
                          ID0=ID0(:,ff);
-                                [a1,b1,c1]=unique(MI_variation0(1,:));
-                                [a2,b2,c2]=unique(MI_variation0(end,:));
-                                for i=1:length(a1)
+
+                         % from trajectories that have the same minima at the beggining and at the end, select the ones with minimal cost
+                         [a1,b1,c1]=unique(MI_variation0(1,:));
+                         [a2,b2,c2]=unique(MI_variation0(end,:));
+                          for i=1:length(a1)
                                     for j=1:length(a2)
                                         f=find(c1==i & c2==j);
-                                        %f=find(c2==j);
-%                                         if length(f)>1
-%                                             disp([l,it])
-%                                         end
                                         [d,e]=min(cost0(f));
                                         cost{len}{it}=[cost{len}{it},d];
                                         ID{len}{it}=[ID{len}{it},ID0(:,f(e))];
                                     end
-                                end
+                           end
                     end
                 end
                 
-                %trajectories of length (len+1)*7+1
-                
+              %% [(len+1)*7+1]-frame-trajectories  
               while len<T/7 && length(ID)==len
+
                 	len = len+1;
                     number_of_frames=(len+1)*7+1;
+
                 for it=1:min([size(ID{len-1},2),size(ID{1},2)-(len-1)])
                     
-                    if size(ID{len-1}{it},2)>0 & size(ID{1}{it+len-1},2)>0
+                    if size(ID{len-1}{it},2)>0 && size(ID{1}{it+len-1},2)>0
+
+                        % MI of [(len+1)*7+1]-frame-trajectories created out of one [(len)*7+1]-frame trajetory and 8-frame-trajectories
                         ID0=combvec(ID{len-1}{it},ID{1}{it+len-1});
-                        %cost0=combvec(cost{len-1}{it},cost{1}{it+len-1});
                         ff=ID0(end-2,:)==ID0(end-1,:);
                         ID0=ID0(:,ff);
                         ID0(end-1,:)=[];
                         
                         if len>2
-                            %delete already handeled in ID{len}
+                            %delete shorter trajectories that are contained in [(len+1)*7+1]-frame-trajectories
                             IDD0=combvec(1:size(ID{len-1}{it},2),1:size(ID{1}{it+len-1},2));
                             IDD0=unique(IDD0(1,ff));
                             ID{len-1}{it}(:,IDD0)=[];
@@ -159,6 +182,7 @@ end
                         end
                         
                       if sum(ff)>0  
+                          % properties/cost function of [(len+1)*7+1]-frame-trajectories
                           SUM_Dx20=0;
                           SUM_m20=0;
                           SUM_m0=0;
@@ -175,35 +199,27 @@ end
                         VAR_Dx = SUM_Dx20/(number_of_frames-1);
                         VAR_m = (SUM_m20 - ...
                             (SUM_m0).^2/number_of_frames)/number_of_frames;
-                        
-                        
-                        %ff = MEAN_m < MEAN_m_threshold0;
-%                         ID{len}{it} = ID0;
-%                         cost{len}{it} = VAR_Dx.*VAR_m;
+
                         cost0  = VAR_Dx.*VAR_m;
                         ID{len}{it}=[];
                         cost{len}{it}=[];
-                                %[a1,b1,c1]=unique(ID0(1,:));
-                                [a2,b2,c2]=unique(ID0(end,:));
-                                %for i=1:length(a1)
-                                    for j=1:length(a2)
-                                        %f=find(c1==i & c2==j);
-                                        f=find(c2==j);
-%                                         if length(f)>1
-%                                             disp([l,it])
-%                                         end
-                                        [d,e]=min(cost0(f));
-                                        cost{len}{it}=[cost{len}{it},d];
-                                        ID{len}{it}=[ID{len}{it},ID0(:,f(e))];
-                                    end
-                                %end
+
+                        % from trajectories that have the same minima at the end, select the ones with minimal cost
+                        [a2,b2,c2]=unique(ID0(end,:));
+                        for j=1:length(a2)
+                              f=find(c2==j);
+                              [d,e]=min(cost0(f));
+                              cost{len}{it}=[cost{len}{it},d];
+                              ID{len}{it}=[ID{len}{it},ID0(:,f(e))];
+                        end
+                                
                         
                       end
                     end
                 end
               end
               
-              %create trajectory
+              %% select the longest trajectories with minimal cost
                 MI_decided_par{iT}=[];
                 MI_trajectory_par{iT}=[];
                 kk=0;
@@ -219,10 +235,8 @@ end
                             for j=1:size(ID0{it},1)-1
                                 MI_trajectory00=[MI_trajectory00;MI_variation{it+j-1}(1:end-1,ID0{it}(j,i))];
                             end
-                            j=j+1;
-                            MI_trajectory00=[MI_trajectory00;MI_variation{it+j-1}(:,ID0{it}(j,i))];
+                            MI_trajectory00=[MI_trajectory00;MI_variation{it+j}(:,ID0{it}(j+1,i))];
                             MI_trajectory0=[MI_trajectory0,MI_trajectory00];
-                            %cost0=[cost0,cost{length(ID)-len+1}{it}(i)];
                           end
                         end
                     end
@@ -237,30 +251,10 @@ end
                         end
                     end
                 end
-                
-%                 %reconnect lost
-%                 kk=1;
-%               while kk>0
-%                 kk=0;
-%                 for it=1:length(MI_trajectory_par{iT})
-%                     timeFrame_start(it) = OC_anal.timeFrame(MI_trajectory_par{iT}{it}(1));
-%                     timeFrame_end(it) = OC_anal.timeFrame(MI_trajectory_par{iT}{it}(end));
-%                 end
-%                 for it=1:length(timeFrame_start)
-%                     ff1=find(timeFrame_end(it)+8==timeFrame_start);
-%                     it0=(timeFrame_end(it)-1)/7+1;
-%                     for i=1:length(ff1)
-%                         ff2=find(MI_variation{it0}(1,:)==MI_trajectory_par{iT}{it}(end) ...
-%                             & MI_variation{it0}(end,:)==MI_trajectory_par{iT}{ff1(i)}(1));
-%                         for j=1:length(ff2)
-%                             kk=kk+1;
-%                             MI_variation0=[MI_trajectory_par{iT}{it}(1:end-1);MI_variation{it0}(:,ff2(j));MI_trajectory_par{iT}{ff1(i)}(2:end)];
-%                             ID_combination{kk}= [it,ff1(i)];
-                        
-                
-           end
+        
+end
            
-%connect from cores
+%% combine trajectories found from all the cores
 for iT=1:length(MI_decided_par)-1
     a=intersect(MI_decided_par{iT},MI_decided_par{iT+1});
     MI_trajectory_pair=zeros(2,length(a));
@@ -280,8 +274,8 @@ for iT=1:length(MI_decided_par)-1
         [c,ia,ib]=unique(MI_trajectory_pair','rows');
         for i=1:length(ia)
             if length(ib==ia(i))>=4
-                ff1=OC_anal.timeFrame(MI_trajectory_par{iT+1}{MI_trajectory_pair(2,ia(i))}(1)); %first frame of second
-                ff=OC_anal.timeFrame(MI_trajectory_par{iT}{MI_trajectory_pair(1,ia(i))})<ff1; %frame of the first that are lower than ff1
+                ff1=OC.timeFrame(MI_trajectory_par{iT+1}{MI_trajectory_pair(2,ia(i))}(1)); %first frame of second
+                ff=OC.timeFrame(MI_trajectory_par{iT}{MI_trajectory_pair(1,ia(i))})<ff1; %frame of the first that are lower than ff1
                 MI_trajectory_par{iT+1}{MI_trajectory_pair(2,ia(i))}=[MI_trajectory_par{iT}{MI_trajectory_pair(1,ia(i))}(ff);MI_trajectory_par{iT+1}{MI_trajectory_pair(2,ia(i))}];
                 MI_trajectory_par{iT}{MI_trajectory_pair(1,ia(i))}=[];
             end
@@ -296,12 +290,4 @@ for iT=2:length(MI_decided_par)
     MI_trajectory=[MI_trajectory MI_trajectory_par{iT}];
 end
 MI_decided=unique(MI_decided); 
-           
-
-% surface(1:size(data.Im,1),data.Yum,data.Im'); view(2); shading flat
-% hold on
-% for i=1:length(MI_trajectory)
-% plot3(OC_anal.timeFrame(MI_trajectory{i}),OC_anal.positionUm(MI_trajectory{i}),2*ones(size(MI_trajectory{i})),'.');
-% end
-% disp('')  
  

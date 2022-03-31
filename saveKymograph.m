@@ -47,10 +47,10 @@ denoise_setting.tav_drift = 200; %span of the moving average in time coordinate 
 denoise_setting.PODM = 1; %iterative condition for masking procedure; put inf for quick and unprecise analysis, put 1 for slow precise analysis 
 
 % particle tracking settings
-PT_setting.FACTOR_PARTICLE_LIMIT = 4; %factor setting maximal values of STD(m) (m are zero order intesity moments) of a trajectory that are considred to be a particle
-PT_setting.FACTOR_NOISE_LIMIT8 = 3; %factor setting maximal values of -MEAN(m) (m are zero order intesity moments) of a 8-frame-trajectory that are considered to be noise 
-PT_setting.FACTOR_NOISE_LIMIT15 = 4; %factor setting maximal values of -MEAN(m) (m are zero order intesity moments) of a 15-frame-trajectory that are considered to be noise
-PT_setting.DIFF_COEFFUm=50; %the highest diffusivity of a particle that are found by the algorithm [um^2/s]
+PT_setting.FACTOR_PARTICLE_LIMIT = 4; %factor setting maximal values of STD(m) of a trajectory that are considred to be a particle
+PT_setting.FACTOR_NOISE_LIMIT8 = 3; %factor setting maximal values of -MEAN(m) of a 8-frame-trajectory that are considered to be noise 
+PT_setting.FACTOR_NOISE_LIMIT15 = 4; %factor setting maximal values of -MEAN(m) of a 15-frame-trajectory that are considered to be noise
+PT_setting.DIFF_COEFFUm=50; %D_limit - the highest diffusivity of a particle that are found by the algorithm [um^2/s]
 PT_setting.MinimalTemporalLength=40; %all found trajectroeis whose temporal length is lower than PT_setting.MinimalTemporalLength are considered to be noise and are discarded
 
 % find bound molecule setting
@@ -180,17 +180,17 @@ for itest=1:length(ExperimentTimeStamp)
          M_std = polyval(M0_std_polyfit,OC.position);
          M_mean = polyval(M0_mean_polyfit,OC.position);
          number_of_frames = 8;
-         OC.VAR_m8_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
-         OC.MEAN_m8_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT8*M_std/sqrt(number_of_frames);
+         OC.VAR_m8_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2; %(sigma_limit)^2 for 8-frame-trajectories
+         OC.MEAN_m8_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT8*M_std/sqrt(number_of_frames); %m_limit for 8-frame-trajectories
          number_of_frames = 15;
-         OC.VAR_m15_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
-         OC.MEAN_m15_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT15*M_std/sqrt(number_of_frames);
-         DIFF_COEFF=PT_setting.DIFF_COEFFUm *(data.time(2)-data.time(1))/(data.Yum(2)-data.Yum(1))^2; %limiting Diff coeff [pixels^2/frame]
+         OC.VAR_m15_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2; %(sigma_limit)^2 for 15-frame-trajectories
+         OC.MEAN_m15_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT15*M_std/sqrt(number_of_frames); %%m_limit for 15-frame-trajectories
+         PT_setting.DIFF_COEFF=PT_setting.DIFF_COEFFUm *(data.time(2)-data.time(1))/(data.Yum(2)-data.Yum(1))^2; %D_limit [pixels^2/frame]
     
          
          %% particle tracking 
           display('finding trajectories')
-          [MI_decided, MI_trajectory] = findTrajectory (OC, data,DIFF_COEFF,PT_setting.FACTOR_PARTICLE_LIMIT);
+          [MI_decided, MI_trajectory] = findTrajectory (OC, PT_setting.DIFF_COEFF, PT_setting.FACTOR_PARTICLE_LIMIT);
 
           %% mask 
           % mask from found particles

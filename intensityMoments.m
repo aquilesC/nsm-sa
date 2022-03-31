@@ -8,7 +8,7 @@ function [opticalContrast]=intensityMoments(Yum,Im,Yav)
 % Im - matrix of intensities, recommended: Im=data.Im;
 % Yav - width of the expected dips [pixel]
 
-% opticalContrast.timeFrame - serie of number of the time frames correspondng to found minimas [frame #]
+% opticalContrast.timeFrame - number of time frames correspondng to found minimas [frame #]
 % opticalContrast.position - corresponding minima positions [pixel]
 % opticalContrast.positionUm - corresponding minima positions [um]
 % opticalContrast.m0 - correspondng 0-th intensity moment [pixel]
