@@ -1,64 +1,74 @@
-clear;
-addpath('convertors')
-addpath('plots')
-analysis='C11';
-analysis_trajectory='D11';
+% main file for the standard analysis (SA) for Nanofluidic Scattering Microscopy (NSM), 
+% described in "B. Špačková et al.: Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles". 
 
-% ffolder={'Z:\AstraZeneca-protein_ladder\2021-06-02-protein_ladder_HEPESplusNaCl\protein_ladder_3000nm\channel_30x85_2_flow_in_microchannels\',...
-%     'Z:\AstraZeneca-protein_ladder\2021-06-02-protein_ladder_HEPESplusNaCl\protein_ladder_3000nm\channel_30x85_2\'}; 
-%ffolder={'Z:\simulated_tests\velocity0_distance20_timesteps10000/'};
-ffolder={'C:\Users\lab\Desktop\results\experimental_noise\'};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% INPUT file = data collected by the camera (saved as strcat(ExperimentTimeStamp,'_M.mat'))
+% data.Im - raw data = 1D image in time = matrix of intensities [time frame, pixel] 
+% data.time - temporal coordinate [s]
+% data.Yum - spatial coordinate [um]
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OUTPUT files 
+% = data - struct containing the processed images (saved as strcat(ExperimentTimeStamp,'_C.mat'))
+% data.Im - kymograph = 1D image in time = matrix of intensities [time frame, pixel] 
+% data.time - temporal coordinate [s]
+% data.Yum - spatial coordinate [um]
+
+% = trajectory containing characteristics of a trajectory (saved as strcat(ExperimentTimeStamp,'_D.mat'))
+% trajectory.timeFrame - temporal coordinates of found trajectories [number of frame]
+% trajectroy.position - spatial coordinates of found trajectories [pixel]
+% trajectroy.positionUm - spatial coordinates of found trajectories [um]
+% trajectory.ID_bound - indexes of found minimas corresponding to bound particles (not diffusing)
+% trajectory.N - temporal length of foudn trajectory
+% trajectory.Deff_mean - diffusivity of a particle [um2/s]
+% trajectory.iOC_mean - integrated optical contrast of a particle [um]
+
+
+clear;
+close all;
+
+ExperimentTimeStamp={'data/24-08-20_16-06-15_D10_iOC0.0005'}; %names of the INPUT files (without the letter at the end) to be anlyzed
+
+
+% SETINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % integrated optical contrast setting
 iOC_setting.DLS=20; %width of the diffraction limited spot  - initial guess for gauss fitting [px]
 iOC_setting.DLSW=2*iOC_setting.DLS+1; %number of selected of points around minima [px]
+iOC_setting.Yav2=iOC_setting.DLS+1; %aperture for calculating the intensity moments [px]
+iOC_setting.DLSW2=2.5*iOC_setting.DLS; %aperture for masking the found responces [px]
 
 % denoising setting    
-Yav=iOC_setting.DLS/2 - 1; %span of the gaussian moving average of the signal in spatial coordinate (imgaussfilt3) [px]
-tav = 1; %span of the moving average of the signal in time coordinate [frame]
-Yav_drift = 200; %span of the moving average in spatial coordinate for backround estimation [px]
-tav_drift = 200; %span of the moving average in time coordinate for backround estimation [px]
-Yav2=iOC_setting.DLS+1; %aperture for calculating the intensity moments [px]
-PODM = 1; %iterative condition for masking procedure
-W_width=2.5*iOC_setting.DLS; %aperture for masking the found responces [px]
+denoise_setting.Yav=iOC_setting.DLS/2 - 1; %span of the gaussian moving average of the signal in spatial coordinate (imgaussfilt3) [px]
+denoise_setting.tav = 1; %span of the moving average of the signal in time coordinate [frame]
+denoise_setting.Yav_drift = 200; %span of the moving average in spatial coordinate for backround estimation [px]
+denoise_setting.tav_drift = 200; %span of the moving average in time coordinate for backround estimation [time frames]
+denoise_setting.PODM = 1; %iterative condition for masking procedure; put inf for quick and unprecise analysis, put 1 for slow precise analysis 
 
 % particle tracking settings
-PT_setting.FACTOR_PARTICLE_LIMIT = 4; %for particcletracking
-PT_setting.FACTOR_NOISE_LIMIT8 = 3;%for particcletracking
-PT_setting.FACTOR_NOISE_LIMIT15 = 4;%for particcletracking
-PT_setting.DIFF_COEFFUm=50; %[um^2/s]
+PT_setting.FACTOR_PARTICLE_LIMIT = 4; %factor setting maximal values of STD(m) (m are zero order intesity moments) of a trajectory that are considred to be a particle
+PT_setting.FACTOR_NOISE_LIMIT8 = 3; %factor setting maximal values of -MEAN(m) (m are zero order intesity moments) of a 8-frame-trajectory that are considered to be noise 
+PT_setting.FACTOR_NOISE_LIMIT15 = 4; %factor setting maximal values of -MEAN(m) (m are zero order intesity moments) of a 15-frame-trajectory that are considered to be noise
+PT_setting.DIFF_COEFFUm=50; %the highest diffusivity of a particle that are found by the algorithm [um^2/s]
+PT_setting.MinimalTemporalLength=40; %all found trajectroeis whose temporal length is lower than PT_setting.MinimalTemporalLength are considered to be noise and are discarded
 
-% find boud molecule setting
+% find bound molecule setting
 filterBoundMolecule_settings.N=30;
 filterBoundMolecule_settings.A=0.9;
 
-fun_plot=1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for ifolder=1:length(ffolder)
-    folder=ffolder{ifolder};
-
-    %% list of files
-    d=dir(folder);
-    [a1,a2]=cellfun(@size,strfind({d.name},'_S.mat')); 
-    
-    ff=find(a1==1);
-    ttest=[]; kk=0;
-    for i=1:length(ff)
-        test0=d(ff(i)).name(1:end-6);
-          [b1,b2]=cellfun(@size,strfind({d.name},strcat(test0,'_C11.mat')));
-          if sum(b1)==0
-            kk=kk+1;
-            ttest{kk}=test0;
-          end
-    end
-    
-    %ttest={'24-08-20_16-06-15_D50_iOC0.002'};
+addpath('convertors')
+addpath('plots')
         
-for itest=1:length(ttest)
-    test=ttest{itest}
-    data=[];
+for itest=1:length(ExperimentTimeStamp)
     
-    load(strcat(folder,'/',test,'_S.mat'));
-    %load(strcat(folder,'/',test,'_M.mat'));
+    clear data trajectory
+    tic
+    
+    %% load raw data
+    load(strcat(ExperimentTimeStamp{itest},'_M.mat'));
     if size(data.Im,2)==length(data.time)
         disp('changing dimensions of data.Im!')
         data.Im=data.Im';
@@ -72,66 +82,56 @@ for itest=1:length(ttest)
         data.Im(ff,:)=[];
     end
     
+    %% add SA settings to data file 
+    data.denoise_setting=denoise_setting;
+    data.iOC_setting=iOC_setting; 
+    data.PT_setting=PT_setting;
+    data.filterBoundMolecule_settings=filterBoundMolecule_settings;
     
-    data.Im=imgaussfilt3(data.Im,[1e-5,Yav,1e-5]);
-    
-     data.Yav_drift=Yav_drift;
-     data.tav_drift=tav_drift;
-     data.Yav2 = Yav2;
-     data.Yav = Yav;
-     data.tav = tav;
-     data.PODM = PODM;
-     data.W_width = W_width;
-     data.iOC_setting=iOC_setting; 
-     data.PT_setting=PT_setting;
-     data.filterBoundMolecule_settings=filterBoundMolecule_settings;
-     
-    tic
-    %cut time
-%     data.Im=data.Im(3000:4000,:);
-%     data.time=data.time(3000:4000);
+%     %% select time frames
+%     data.Im=data.Im(1:1000,:);
+%     data.time=data.time(1:1000);
+
+    %% convolution of the optical responce with gaussian profile 
+    data.Im=imgaussfilt3(data.Im,[1e-5,data.denoise_setting.Yav,1e-5]);
            
-     %% image & intensity stabilization
-     DIFF_COEFF=PT_setting.DIFF_COEFFUm *(data.time(2)-data.time(1))/(data.Yum(2)-data.Yum(1))^2; %limiting Diff coeff [pixels^2/frame]
-     Ycut=1+Yav_drift/2:size(data.Im,2)-Yav_drift/2;
+    %% initial values for iteration
+    Ycut=1+data.denoise_setting.Yav_drift/2:size(data.Im,2)-data.denoise_setting.Yav_drift/2;
+    data0=data;
+    Icut=data.Im(:,Ycut);
+    W=ones(size(data.Im));
+    podm=Inf; kk=0; 
      
-     data0=data;
-     Icut=data.Im(:,Ycut);
-     W=ones(size(data.Im));
-     podm=Inf; kk=0; 
+    %% estimation of STD of intenity profile
+    STD_profile0=1./sqrt(Icut(1,:))./mean(1./sqrt(Icut(1,:)));
+    STD_profile0_fit=polyfit(Ycut,STD_profile0,3); 
+    a=polyval(STD_profile0_fit,1:length(data.Yum));
+    STD_profile0_fit=STD_profile0_fit/mean(a);
      
-     %STD_profile
-             STD_profile0=1./sqrt(Icut(1,:))./mean(1./sqrt(Icut(1,:)));
-             STD_profile0_fit=polyfit(Ycut,STD_profile0,3); 
-             a=polyval(STD_profile0_fit,1:length(data.Yum));
-             STD_profile0_fit=STD_profile0_fit/mean(a);
-     
-     while podm>=PODM && kk<20
+     while podm>=data.denoise_setting.PODM && kk<20
          
          kk=kk+1;
          data=data0;
          I0cut=Icut;
+
+         %% image stabilization and background subtraction
          data.Im=data.Im./W;
-%          if kk==1
-            data=intensity_stabilization(data,'median');
-%          else 
-%              data=intensity_stabilization_fast3(data,'mean');
-%          end
+         data.Im=intensity_stabilization(data.Im,denoise_setting,'median');
          data.Im=data.Im.*W;
-         if data.tav>1
-            data.Im=conv2(data.Im-1,ones(data.tav,1)/data.tav,'same');
+         if data.denoise_setting.tav>1
+            data.Im=conv2(data.Im-1,ones(data.denoise_setting.tav,1)/data.denoise_setting.tav,'same');
             data.Im=data.Im+1;
          end
-         data.Im=imgaussfilt3(data.Im,[1e-4,data.Yav,1e-4]);
+         data.Im=imgaussfilt3(data.Im,[1e-4,data.denoise_setting.Yav,1e-4]);
          Icut=data.Im(:,Ycut);
          
-         %setting the noise levels - STD_profile, M0_std_polyfit, M0_mean_polyfit
+         %% estimation of noise limits 
          if kk==1 
              
-             % M0_std_polyfit, M0_mean_polyfit
+             % estimation of noise limits for m0 (zero intensity moments): M0_std_polyfit, M0_mean_polyfit = std and mean values of m0 
              data_inv=data;
              data_inv.Im=2-data_inv.Im;
-             OC_inv=intensityMoments(data_inv,data_inv.Yav2);
+             OC_inv=intensityMoments(data_inv.Yum,data_inv.Im,data.iOC_setting.Yav2);
              bin=ceil(OC_inv.position);
              M0=OC_inv.m0;
              for i=1:length(Ycut)
@@ -151,12 +151,13 @@ for itest=1:length(ttest)
              M0_std_polyfit=polyfit(Ycut,M0_std,3);
              M0_mean_polyfit=polyfit(Ycut,M0_mean,3);
                 
-             
+             % estimation of noise limits for intensity: STD_profile = std of intensity
              a=Icut(Icut>=1);
              STD=sqrt(sum((a-1).^2)/(length(a)-1));
              STD_profile_fit=STD.*STD_profile0_fit;
              STD_profile=repmat(polyval(STD_profile_fit,1:size(W,2)),size(W,1),1);
-%              
+
+%                 % plot noise limits 
 %                 figure
 %                 subplot(2,2,1);
 %                 plot(Ycut,M0_std); hold on
@@ -172,44 +173,48 @@ for itest=1:length(ttest)
               
          end
          
-         %% intensity moments
-         OC=intensityMoments(data,data.Yav2);
-         OC.Yav2=data.Yav2;
+         %% calculation of intensity moments
+         OC=intensityMoments(data.Yum,data.Im,data.iOC_setting.Yav2);
+
+         %% definition of thresholds for particle tracking
          M_std = polyval(M0_std_polyfit,OC.position);
          M_mean = polyval(M0_mean_polyfit,OC.position);
          number_of_frames = 8;
-         OC.VAR_m8_threshold = (M_std.^2*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
+         OC.VAR_m8_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
          OC.MEAN_m8_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT8*M_std/sqrt(number_of_frames);
          number_of_frames = 15;
-         OC.VAR_m15_threshold = (M_std.^2*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
+         OC.VAR_m15_threshold = (M_std*(1+0.72*PT_setting.FACTOR_PARTICLE_LIMIT/sqrt(number_of_frames))).^2;
          OC.MEAN_m15_threshold = M_mean - PT_setting.FACTOR_NOISE_LIMIT15*M_std/sqrt(number_of_frames);
+         DIFF_COEFF=PT_setting.DIFF_COEFFUm *(data.time(2)-data.time(1))/(data.Yum(2)-data.Yum(1))^2; %limiting Diff coeff [pixels^2/frame]
+    
          
-         %% mask
-          
-          % mask from trajectories 
+         %% particle tracking 
           display('finding trajectories')
           [MI_decided, MI_trajectory] = findTrajectory (OC, data,DIFF_COEFF,PT_setting.FACTOR_PARTICLE_LIMIT);
+
+          %% mask 
+          % mask from found particles
           trajectory_positionUm = OC.positionUm(MI_decided);
           trajectory_timeFrame = OC.timeFrame(MI_decided);
           W0=zeros(size(data.Im));
           for i=1:length(trajectory_positionUm)
-              W0(trajectory_timeFrame(i),data.Yum>=trajectory_positionUm(i)-W_width/2*(data.Yum(2)-data.Yum(1)) & data.Yum<=trajectory_positionUm(i)+W_width/2*(data.Yum(2)-data.Yum(1)))=1;
+              W0(trajectory_timeFrame(i),data.Yum>=trajectory_positionUm(i)-data.iOC_setting.DLSW2/2*(data.Yum(2)-data.Yum(1)) & data.Yum<=trajectory_positionUm(i)+data.iOC_setting.DLSW2/2*(data.Yum(2)-data.Yum(1)))=1;
           end
 
-          % excluding mask
+          % exclude parts with not equidistant timing (when collection of data stopped)
           W1=ones(size(data.Im));
-          W1(1:data.tav_drift/2,:)=0;
-          W1(end-data.tav_drift/2:end,:)=0;
-          W1(:,1:data.Yav_drift/2)=0;
-          W1(:,end-data.Yav_drift/2:end)=0;
+          W1(1:data.denoise_setting.tav_drift/2,:)=0;
+          W1(end-data.denoise_setting.tav_drift/2:end,:)=0;
+          W1(:,1:data.denoise_setting.Yav_drift/2)=0;
+          W1(:,end-data.denoise_setting.Yav_drift/2:end)=0;
           dtime=diff(data.time);
           a=median(dtime);
           timeFrame_jump=find(dtime>1.5*a);
           for i=1:length(timeFrame_jump)
-                W1(max([1,timeFrame_jump(i)-data.tav_drift/2]):min([timeFrame_jump(i)+data.tav_drift/2],size(W1,1)),:)=0;
+                W1(max([1,timeFrame_jump(i)-data.denoise_setting.tav_drift/2]):min([timeFrame_jump(i)+data.denoise_setting.tav_drift/2],size(W1,1)),:)=0;
           end
           
-          % mask from relative to STD combined with mask from trajectory
+          % combine mask with estimation based on intensities relative to STD of noise
           W=data.Im-1;
           ff=abs(W)<3*STD_profile;
           W(ff)=W(ff).*(W(ff)./(3*STD_profile(ff))).^2;
@@ -218,7 +223,7 @@ for itest=1:length(ttest)
           W(ff)=data.Im(ff)-1;
           W=W+1;
             
-          podm=max(max(abs(Icut-I0cut)./STD_profile(:,Ycut)))
+          podm=max(max(abs(Icut-I0cut)./STD_profile(:,Ycut))) %the indicator of difference between the iteration steps
      end
       
      data.STD_profile_fit=STD_profile_fit;
@@ -229,7 +234,7 @@ for itest=1:length(ttest)
     itra=0;
     trajectory=[];
     for i=1:length(MI_trajectory)
-        if length(MI_trajectory{i})>=3
+        if length(MI_trajectory{i})>=data.PT_setting.MinimalTemporalLength
               itra=itra+1;
               trajectory(itra).timeFrame=OC.timeFrame(MI_trajectory{i});
               trajectory(itra).position=OC.position(MI_trajectory{i});
@@ -237,79 +242,18 @@ for itest=1:length(ttest)
               trajectory(itra).ID_bound = filterBoundMolecules(trajectory(itra).position,filterBoundMolecule_settings.N,filterBoundMolecule_settings.A);
               trajectory(itra).N=length(trajectory(itra).position)-length(trajectory(itra).ID_bound);
               ff=setdiff(1:length(trajectory(itra).timeFrame),trajectory(itra).ID_bound);
-              [trajectory(itra).Deff_mean, diffusion_coefficient_correction,trajectory(itra).Deff_std] = trajectoriesToDiffusivity(trajectory(itra).positionUm(ff)', data.time(trajectory(itra).timeFrame(ff)'), trajectory(itra).timeFrame(ff)',data.tav,'');
+              [trajectory(itra).Deff_mean, diffusion_coefficient_correction,trajectory(itra).Deff_std] = trajectoriesToDiffusivity(trajectory(itra).positionUm(ff)', data.time(trajectory(itra).timeFrame(ff)'), trajectory(itra).timeFrame(ff)',data.denoise_setting.tav);
               trajectory(itra).iOC_mean = integrateOpticalContrast(data,trajectory(itra).timeFrame(ff),trajectory(itra).position(ff), iOC_setting.DLS, iOC_setting.DLSW);
         end
     end
 
-
-if fun_plot==1
+    %% save results
+    save(strcat(ExperimentTimeStamp{itest},'_C.mat'),'data');
+    save(strcat(ExperimentTimeStamp{itest},'_D.mat'),'trajectory');
     
-    %% plot kymograph
-    %close all;
-    figure('Position',[1 200 2000 500]);
-    surf(1:size(data.Im,1),data.Yum,data.Im'); shading flat; view(2); colorbar; hold on
-    colormap(bone)
-    ylim([data.Yum(1) data.Yum(end)])
-%     xlim([data.time(1) data.time(end)])
-    xlim([1 size(data.Im,1)])
-    ylabel('Position (\mum)')
-%     xlabel('Time (s)')
-    xlabel('Time frame')
-    caxis([1-3e-4 1+3e-4])
-    drawnow;
-    shg;
-    
-    %% plot trajectory
-    for itra=1:length(trajectory)
-         plot3(trajectory(itra).timeFrame,trajectory(itra).positionUm,2*ones(size(trajectory(itra).timeFrame)),'Marker','.')
-    end
-
-    %% plot trajectories characteristics
-    if length(trajectory)>0
-        collection.Deff_mean=[trajectory.Deff_mean];
-        collection.iOC_mean=[trajectory.iOC_mean];
-        collection.N=[trajectory.N];
-
-        %filter short trajectories
-        a=collection.N>20;
-        fname=fieldnames(collection);
-        for i=1:length(fname)
-            collection.(fname{i})= collection.(fname{i})(a);
-        end
-        
-        %iOC x Deff histogram
-        [N, edgesX, edgesY] = weighted_histcounts2 (collection.Deff_mean,collection.iOC_mean,collection.N,100);
-        figure;
-        surf(edgesY*1000,edgesX,N); view(2); shading flat
-        xlabel('iOC (nm)')
-        ylabel('Diffusivity (\mum^2/s)')
-        
-        % transform from iOC to MW and transform from Deff to HR
-        nanochannelArea = list_of_nanochannels ('channel_30x85');
-        HR = EffectiveDiffusivityToSize (collection.Deff_mean, nanochannelArea);
-        MW = iOCToWeight (-collection.iOC_mean, nanochannelArea);
-        
-        % MW x HR histogram
-        [N, edgesX, edgesY] = weighted_histcounts2 (HR,MW,collection.N,300);
-        figure;
-        surf(edgesY/1000,edgesX*1000,N); view(2); shading flat
-        xlabel('Molecular weight (kDa)')
-        ylabel('Hydrodynamic radius (nm)')
-    end
-    
-    
-end
-    
-    %%
-    toc
-    tic
-    save(strcat(folder,'/',test,'_',analysis,'.mat'),'data');
-    save(strcat(folder,'/',test,'_',analysis_trajectory,'.mat'),'trajectory');
-    clear data trajectory
     toc
 end
-end
+
 
                 
             

@@ -1,84 +1,60 @@
-function [dIm, x3, kk]=image_stabilization (Y,Im,Im0,Yav)
+function [dIm, x3, kk]=image_stabilization (Im,Im0,Yav)
 
-%dIm is a ratio between Im and Im0 which is stabilized in Y position
-%and normalized by fitted polynom 
+% image stabilization  - correction for vibration - spatial shift of an image  
+% more details in "B. Špačková et al.: Label-Free Nanofluidic Scattering Microscopy of Size and Mass of Single Diffusing Molecules and Nanoparticles", SI section 5  
 
-funplot = 0;
-dx = 1e-2;
+%Im - one-dimensional matrix of intensities (intensities along the space) at (i+1)th frame
+%Im0 - one-dimensional matrix of intensities (intensities along the space) at ith frame
+%Yav - moving average parameter
 
-threshold = 1e-4;
+%Im_temp - Im stabilized in terms of vibrations
+%x3 - found space shift in (i=1)th frame [pixels]
+%kk - number of interations
+%dIm - ratio between Im and Im0 which is stabilized in Y position
+%and normalized by moving mean
+ 
+dx = 1e-2; %initial guess of space shift in the (i+1)th frame
+threshold = 1e-4; %threshold value for the Newton-Rapson interation
 
+Y = 1:length(Im0);
 
-    
-%         x0 = 0;
-%         dIm0 = Im./Im0;
-%         pf=polyfit(Y,dIm0,porder);
-%         dIm0=dIm0./polyval(pf,Y);
-%         dImsum_start=sum(abs(dIm0-1));
+%% two initial guesses of spatial shift for Newton-Rapson interation
+x1 = 0;
+Im_temp=interp1(Y,Im,Y+x1,'spline');
+dIm1 = Im_temp./Im0;
+dIm1=dIm1./smooth(dIm1,Yav)';
         
-        x1 = 0;%-dx;
-        Im_temp=interp1(Y,Im,Y+x1,'spline');
-        dIm1 = Im_temp./Im0;
-        dIm1=dIm1./smooth(dIm1,Yav)';
-        
-        x2 = dx;
-        Im_temp=interp1(Y,Im,Y+x2,'spline');
-        dIm2 = Im_temp./Im0;
-        dIm2=dIm2./smooth(dIm2,Yav)';
-        
-        if funplot == 1
-            hold off
-            plot(dIm1); hold on
-            plot(dIm2);
-        end
-        
-        kk=1;
-        while abs(x2-x1)>threshold
+x2 = dx;
+Im_temp=interp1(Y,Im,Y+x2,'spline');
+dIm2 = Im_temp./Im0;
+dIm2=dIm2./smooth(dIm2,Yav)';
 
-            %x4 = (x1^2*(y2 - y3) + x2^2 * (y3 - y1) + x3^2 * (y1 - y2))/(2* (x1 *(y2 - y3) + x2 *(y3 - y1) + x3* (y1 - y2)));
-            %x4 = (x1^2*(dIm2 - dIm3) + x2^2 * (dIm3 - dIm1) + x3^2 * (dIm1 - dIm2))./(2* (x1 *(dIm2 - dIm3) + x2 *(dIm3 - dIm1) + x3* (dIm1 - dIm2)));
-            
-%             x3 = -(x2-x1)./(dIm2(1+Yav/2:end-Yav/2)-dIm1(1+Yav/2:end-Yav/2)).*(dIm1(1+Yav/2:end-Yav/2)-1)+x1;
-%             W = abs(dIm2(1+Yav/2:end-Yav/2)-dIm1(1+Yav/2:end-Yav/2)).^2;
-            
-            x3 = -(x2-x1)./(dIm2(2:end-1)-dIm1(2:end-1)+eps).*(dIm1(2:end-1)-1)+x1;
-            %W = abs(dIm2-dIm1).^2.*(Im/max(Im)).^2;
+%% Newton-Rapson iteration
+kk=1;
+while abs(x2-x1)>threshold
+
+            x3 = -(x2-x1)./(dIm2(2:end-1)-dIm1(2:end-1)+eps).*(dIm1(2:end-1)-1)+x1; 
             W = abs(dIm2(2:end-1)-dIm1(2:end-1)).*(Im(2:end-1)/max(Im));
             
             ff=isnan(x3)==0 & abs(x3)<Inf & isnan(W)==0 & abs(W)<Inf;
             x3 = sum(x3(ff).*W(ff))/sum(W(ff));
             Im_temp=interp1(Y,Im,Y+x3,'spline');
-%             if length(find(isnan(Im_temp)==1))>0
-%                 disp('');
-%             end
+
             dIm = Im_temp./Im0;
             
             I_mean=smooth(dIm,Yav)';
             dIm=dIm./I_mean;
-            if funplot == 1
-                plot(dIm,'.'); hold on
-            end
-%             if length(find(isnan(dIm)==1))>0
-%                 disp('');
-%             end
-           
-            %y3=std(dIm);
-%             plot(x4,y4,'.')
+            
 
-            x1=x2; x2=x3; 
-            %y1=y2; y2=y3; 
+
+            x1=x2; x2=x3;
             dIm1=dIm2; dIm2=dIm; 
 
             kk=kk+1;
             if kk>100
                 disp('image_stabilizationY8: does not converge, kk>100'); return
             end
-        end
+end
    
-   
-%         dImsum_stop=sum(abs(dIm-1));
-%         if dImsum_stop>dImsum_start
-%             disp('image_stabilizationY2: higher noise at the end!'); return
-%         end
         
 

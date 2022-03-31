@@ -16,8 +16,8 @@ A=std(xN,1,1)./std(diff(xN,1,1),1,1);
 
 ID_bound=find(A<Alimit);
 if length(ID_bound)>0
-ID_bound=ID_bound+[0:N-1]'*ones(1,length(ID_bound));
-ID_bound=unique(reshape(ID_bound,1,[]));
+    ID_bound=ID_bound+[0:N-1]'*ones(1,length(ID_bound));
+    ID_bound=unique(reshape(ID_bound,1,[]));
 end
 
 

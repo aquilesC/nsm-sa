@@ -1,41 +1,55 @@
-function [weight,calibration] = iOCToWeight (iOC, A)
+function [weight,calibration] = iOCToWeight (iOC, channel_parameters, material)
 
-%clear;
-%addpath('/Users/spackova/Box Sync/_project/SPR')
+%iOC  - integrated optical contrast [um]
+%weight - molecular weight [Da]
+%calibration = weight/iOC [Da/um]
 
-%protein, BSA
-% lambda=0.6;
-% r_bsa=3.7e-3; %marek rika 3.7e-3
-% n_bsa=1.44; %marek rika 1.44
-% n_m=1.33;
-% weight_bsa=66e3; %Da %marek rika 65kDa
+%FOR BARE NANOCHANNEL
+%channel_parameters = A;
 
-% [alpha_bsa,L] = alpha_comp2('es_withoutLW', [r_bsa,r_bsa,r_bsa], 0, n_m^2, n_m^2, n_bsa^2, lambda);
-% alpha_bsa=alpha_bsa(1)*4*pi;
-%alpha_bsa = 2.8986e-08;
+% FOR COATED NANOCHANNEL
+%channel_parameters -  [A, A_i, I_rel]
 
-%nanochannel
-n_m=1.33;
-n_c=1.46; %??
-% r_c=50e-3;
-% A=pi*r_c^2;
-%A=0.1*0.17;
+%A - area of a nanochannel [um2]
+%A_i - are of the nanochannel without the coating [um2]
+%I_rel - difference between the intensity before and after the deposition - I_without/I_with
 
-%weight=logspace(4,8); %Da
+%material - default: protein; other option: lipids
 
-% contrast_bsa_TM=alpha_bsa/A*(2*n_m^2)/(n_m^2 - n_c^2);
-% contrast_bsa_TE=alpha_bsa/A*(n_m^2 + n_c^2)/(n_m^2 - n_c^2);
-% contrast_bsa=alpha_bsa/A*(3*n_m^2 + n_c^2)/(n_m^2 - n_c^2)/2;
-% 
-% weight=iOC./contrast_bsa*weight_bsa;
+n_i=1.33; %RI of the inside of a nanochannel
+n_o=1.46; %RI of the outside of a nanochannel
 
-% figure;
-% loglog(weight,- contrast_int);
-% xlabel('Molecular weight (Da)');
-% ylabel('\int Contrast')
 
-n_mean = (3*n_m^2 + n_c^2)/(n_m^2 - n_c^2)/2;
-alpha_MW = 0.461e-12; %[mum2/Da]
-calibration = A/alpha_MW/n_mean
+n_TE = 2*n_i^2/(n_i^2 - n_o^2);
+n_TM = (n_i^2 + n_o^2)/(n_i^2 - n_o^2);
+n_mean = 0.5*(n_TE + n_TM);
 
+if length(channel_parameters)==1
+    
+    A=channel_parameters;
+    
+else 
+    
+    A=channel_parameters(1);
+    A_i=channel_parameters(2);
+    I_rel=channel_parameters(3);
+    
+    f=A_i/A;
+        
+      n_s = sqrt((n_i^2-n_o^2)*(sqrt(1/I_rel)-f)/(1-f)+n_o^2); %for TE
+      %n_s = %for TM
+      
+      n_mean=n_mean*sqrt(I_rel);
+    
+end
+
+if nargin == 2 %protein
+    alpha_MW = 0.461e-12; %[mum2/Da]
+else
+    if strcmp(material,'lipid')==1
+        alpha_MW = 0.461e-12/1.85*1.6; %[mum2/Da]
+    end
+end
+        
+calibration = A/alpha_MW/n_mean;
 weight = iOC*calibration;

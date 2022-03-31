@@ -1,12 +1,21 @@
 function HR = EffectiveDiffusivityToSize (Deff, channel_area)
 
+%Stokes-Einstein equation corrected for hindrance effects associated with
+%the diffusion of small objects in a restricted volume (equation 2 in the manuscript)
+% according to Panadda Dechadilok and William M. Deen: Hindrance Factors for Diffusion and Convection in Pores
+
+%the script solves the equation by Newton-Raphson method
+
 %Deff - effective diffusivity [mum^2/s] - diffusivity of a particle inside
 %a channel
 %channel area [mum^2/s]
 %HR - hydrodynamic radius [mum]
 
-%the script calculates solves the equation 2 in the manuscript by
-%Newton-Raphson method 
+ 
+
+if length(channel_area)>1
+    channel_area=channel_area(2);
+end
 
 kB=1.38064852*1e-23;	%[J?K?1]= [ kg?m2?s?2?K?1]
 T=273.15 + 25 ;%absolute temperature [K]
@@ -17,7 +26,7 @@ for i=1:length(Deff)
     f0 = hindranceFactor(HR0./sqrt(channel_area/pi)) * kB*T./(6*pi*ny*Deff(i)*1e-6) *1e12 - HR0;
     HR1 = HR0*0.9;
     f1 = hindranceFactor(HR1./sqrt(channel_area/pi)) * kB*T./(6*pi*ny*Deff(i)*1e-6) *1e12 - HR1;
-    HR2 = HR0;
+    
 %     close all
 %     plot(HR0, f0,'.'); hold on
 %     plot(HR1, f1,'.'); hold on

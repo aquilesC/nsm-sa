@@ -15,7 +15,8 @@ end
                      
 
            T=841;
-           parfor iT=1:ceil((length(MI)-8)/T)
+           %parfor iT=1:ceil((length(MI)-8)/T)
+           for iT=1:ceil((length(MI)-8)/T)
                
                MI_variation=[];
                SUM_Dx2 = [];

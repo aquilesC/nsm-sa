@@ -14,19 +14,18 @@ Install Matlab and download the repository from git. The code can be run directl
 
 1. Sample data
 
-Sample data are provided in data folder. The names of the files are comprised of ExperimentTimeStamp + Idenfier.
-
-ExperimentTimeStamp:
-
-- Ferritin in Channel I: 13-10-20_14-01-50
-
-tbc...
+Sample data are provided in NSM-SA/data/. The names of the files are comprised of ExperimentTimeStamp + Idenfier.
 
 Indetifier:
 
 - M - raw data
 - C - processed image data
 - D - particle trajectories data
+
+The whole sample dataset can be downloaded from https://chalmers-my.sharepoint.com/:f:/g/personal/hmoberg_chalmers_se/ElpFotTfPNNInU2YghmGN3IBs5cPPgMxjsdPwtsXserlYA?e=53WB9a
+Place the folder "Demo Data" in directory NSM-SA/data/.
+This data corresponds to the artificial dataset used for Fig. S14.
+
 
 2. Processing the raw data
 
