@@ -11,10 +11,11 @@ The code performs 3 main tasks:
 Install Matlab and download the repository from git. The code can be run directly from the supplied scripts. 
 
 ## Instructions for Demo 
+To reproduce a subset of data presented in [1] we supply example data and instructions how to use to code.
 
 1. Sample data
 
-Sample data are provided in data folder. The names of the files are comprised of ExperimentTimeStamp + Idenfier.
+Sample data are provided in _data_ folder. The names of the files are comprised of [_ExperimentTimeStamp_]_[_Identifier_].
 
 ExperimentTimeStamp:
 
@@ -22,7 +23,7 @@ ExperimentTimeStamp:
 
 tbc...
 
-Indetifier:
+The different identifiers are:
 
 - M - raw data
 - C - processed image data
@@ -32,16 +33,16 @@ Indetifier:
 
 - Change the required field (ExperimentTimeStamp) in the saveKymograph.m to specify the name of the file to be analyzed. 
 - A serie of settings is described in the heading of saveKymograph.m. We recommend to use the default values (optimized for the collected data).
-- Run saveKymograph.m
-- Results of the image processing is saved as ExperimentTimeStamp_C.m
-- Results of the particle tracking is saved as ExperimentTimeStamp_D.m
+- Run _saveKymograph.m_
+- Results of the image processing is saved as _ExperimentTimeStamp_C.m_
+- Results of the particle tracking is saved as _ExperimentTimeStamp_D.m_
 
 3. Plotting the kymograph
 
-- Load the ExperimentTimeStamp_C.m and ExperimentTimeStamp_D.m 
-- Run plots/plotKymograph.m
+- Load the _ExperimentTimeStamp_C.m_ and _ExperimentTimeStamp_D.m_ 
+- Run _plots/plotKymograph.m_
 
 4. Plotting the scatter plot and histograms of iOC/MW and D/HR corresponding to the found particles
-- Load ExperimentTimeStamp_D.m 
-- Run plots/plotParticles.m
+- Load _ExperimentTimeStamp__D.m 
+- Run _plots/plotParticles.m_
 
