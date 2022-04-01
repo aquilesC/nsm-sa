@@ -30,8 +30,7 @@ end
                      
 
 T=841; %for parallel computing: number of frames analyzed by a single core
-%parfor iT=1:ceil((length(MI)-8)/T)
-for iT=1:ceil((length(MI)-8)/T) %iT is the number of core
+parfor iT=1:ceil((length(MI)-8)/T)
                
                MI_variation=[];
                SUM_Dx2 = [];
@@ -160,7 +159,7 @@ for iT=1:ceil((length(MI)-8)/T) %iT is the number of core
               %% [(len+1)*7+1]-frame-trajectories  
               while len<T/7 && length(ID)==len
 
-                	len = len+1;
+                	len = len +1;
                     number_of_frames=(len+1)*7+1;
 
                 for it=1:min([size(ID{len-1},2),size(ID{1},2)-(len-1)])
@@ -191,10 +190,10 @@ for iT=1:ceil((length(MI)-8)/T) %iT is the number of core
                               SUM_m20 = SUM_m20 + SUM_m2_withoutend{it+i-1}(ID0(i,:));
                               SUM_m0 = SUM_m0 + SUM_m_withoutend{it+i-1}(ID0(i,:));
                           end
-                            i=len+1;
-                            SUM_Dx20 = SUM_Dx20 + SUM_Dx2{it+i-1}(ID0(i,:));
-                              SUM_m20 = SUM_m20 + SUM_m2{it+i-1}(ID0(i,:));
-                              SUM_m0 = SUM_m0 + SUM_m{it+i-1}(ID0(i,:));
+                            
+                            SUM_Dx20 = SUM_Dx20 + SUM_Dx2{it+len}(ID0(len+1,:));
+                              SUM_m20 = SUM_m20 + SUM_m2{it+len}(ID0(len+1,:));
+                              SUM_m0 = SUM_m0 + SUM_m{it+len}(ID0(len+1,:));
                           
                         VAR_Dx = SUM_Dx20/(number_of_frames-1);
                         VAR_m = (SUM_m20 - ...
@@ -223,9 +222,9 @@ for iT=1:ceil((length(MI)-8)/T) %iT is the number of core
                 MI_decided_par{iT}=[];
                 MI_trajectory_par{iT}=[];
                 kk=0;
-                for len=1:length(ID)
-                    ID0=ID{length(ID)-len+1};
-                    cost0=cost{length(ID)-len+1};
+                for k=1:length(ID)
+                    ID0=ID{length(ID)-k+1};
+                    cost0=cost{length(ID)-k+1};
                     cost0=cell2mat(cost0);
                     MI_trajectory0=[];
                     for it=1:length(ID0)
