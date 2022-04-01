@@ -28,7 +28,7 @@
 clear;
 close all;
 
-ExperimentTimeStamp={'data/24-08-20_16-06-15_D10_iOC0.0005'}; %names of the INPUT files (without the letter at the end) to be anlyzed
+ExperimentTimeStamp={'./data/24-08-20_16-06-15_D10_iOC0.0005'}; %names of the INPUT files (without the letter at the end) to be anlyzed
 
 
 % SETINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -223,9 +223,10 @@ for itest=1:length(ExperimentTimeStamp)
           W(ff)=data.Im(ff)-1;
           W=W+1;
             
-          podm=max(max(abs(Icut-I0cut)./STD_profile(:,Ycut))) %the indicator of difference between the iteration steps
+          podm=max(max(abs(Icut-I0cut)./STD_profile(:,Ycut))); %the indicator of difference between the iteration steps
+          disp([num2str(100*kk./20) ' % done... '])
      end
-      
+     disp('100% Done')
      data.STD_profile_fit=STD_profile_fit;
      data.M0_std_polyfit=M0_std_polyfit;
      data.M0_mean_polyfit=M0_mean_polyfit;
